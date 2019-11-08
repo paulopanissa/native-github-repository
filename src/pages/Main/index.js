@@ -1,28 +1,27 @@
-import React, { useState } from 'react';
-import { Keyboard } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Keyboard, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
+import PropTypes from 'prop-types';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../services/api';
 import ListItem from './ListItem';
-import {
-  Container,
-  Form,
-  Input,
-  SubmitButton,
-  ErrorContainer,
-  ErrorText,
-  List,
-} from './styles';
+import { Container, Form, Input, SubmitButton, List } from './styles';
 
-export default function Main() {
+export default function Main({ navigation }) {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState('');
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  async function handleAddUser() {
+  const handleAddUser = useCallback(async () => {
     try {
+      setLoading(true);
+
       const userExists = users.filter(item => item.login === newUser);
 
-      console.tron.log(userExists);
+      if (userExists.length > 0) {
+        setLoading(false);
+        return;
+      }
 
       const response = await api.get(`/users/${newUser}`);
 
@@ -39,13 +38,46 @@ export default function Main() {
       Keyboard.dismiss();
     } catch (e) {
       console.tron.warn(e);
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [newUser, users]);
 
-  const handleRemove = id => {
-    const listUser = users.filter(user => user.id !== id);
-    setUsers(listUser);
-  };
+  const handleRemove = useCallback(
+    id => {
+      const listUser = users.filter(user => user.id !== id);
+      setUsers(listUser);
+    },
+    [users]
+  );
+
+  const handleNavigate = useCallback(
+    user => {
+      navigation.navigate('User', { user });
+    },
+    [navigation]
+  );
+
+  useEffect(() => {
+    async function loadAsyncStorage() {
+      const asyncUsers = await AsyncStorage.getItem('users');
+
+      if (asyncUsers) {
+        setUsers(JSON.parse(asyncUsers));
+      }
+    }
+
+    loadAsyncStorage();
+  }, []);
+
+  useEffect(() => {
+    function controlUsers() {
+      console.tron.log(users);
+      AsyncStorage.setItem('users', JSON.stringify(users));
+    }
+
+    controlUsers();
+  }, [users]);
 
   return (
     <Container>
@@ -59,21 +91,21 @@ export default function Main() {
           returnKeyType="send"
           onSubmitEditing={handleAddUser}
         />
-        <SubmitButton onPress={handleAddUser}>
-          <Icon name="add" size={20} color="#fff" />
+        <SubmitButton loading={loading} onPress={handleAddUser}>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Icon name="add" size={20} color="#fff" />
+          )}
         </SubmitButton>
       </Form>
-      <ErrorContainer>
-        <ErrorText>Texto</ErrorText>
-      </ErrorContainer>
+
       <List
         data={users}
         keyExtractor={user => user.id.toString()}
         renderItem={({ item }) => (
           <ListItem
-            showProfile={() => {
-              console.tron.log('showProfile');
-            }}
+            showProfile={handleNavigate}
             removeProfile={handleRemove}
             key={item.id}
             item={item}
@@ -83,6 +115,12 @@ export default function Main() {
     </Container>
   );
 }
+
+Main.propTypes = {
+  navigation: PropTypes.shape({
+    navigate: PropTypes.func,
+  }).isRequired,
+};
 
 Main.navigationOptions = {
   title: 'Usuários',

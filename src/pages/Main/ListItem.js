@@ -32,55 +32,53 @@ export default function ListItem({ item, showProfile, removeProfile }) {
   }, []);
 
   const handleOnPressRemove = id => {
-    console.tron.warn(id);
-    Animated.timing(listAnimated, {
-      toValue: 0,
-      duration: ANIMATION_DURATION,
-    }).start();
+    // Animated.timing(listAnimated, {
+    //   toValue: 0,
+    //   duration: ANIMATION_DURATION,
+    // }).start();
     removeProfile(id);
   };
 
-  const handleOnPressShowProfile = id => {
-    console.tron.warn('Show Profile');
-    showProfile(id);
+  const handleOnPressShowProfile = user => {
+    showProfile(user);
   };
 
+  const styleAnimation = [
+    {
+      height: listAnimated.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, ROW_HEIGHT],
+        extrapolate: 'clamp',
+      }),
+    },
+    {
+      opacity: listAnimated.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    },
+    {
+      transform: [
+        { scale: listAnimated },
+        {
+          rotate: listAnimated.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['35deg', '0deg'],
+            extrapolate: 'clamp',
+          }),
+        },
+      ],
+    },
+  ];
+
   return (
-    <User
-      style={[
-        {
-          height: listAnimated.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, ROW_HEIGHT],
-            extrapolate: 'clamp',
-          }),
-        },
-        {
-          opacity: listAnimated.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 1],
-            extrapolate: 'clamp',
-          }),
-        },
-        {
-          transform: [
-            { scale: listAnimated },
-            {
-              rotate: listAnimated.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['35deg', '0deg'],
-                extrapolate: 'clamp',
-              }),
-            },
-          ],
-        },
-      ]}
-    >
+    <User style={styleAnimation}>
       <Avatar source={{ uri: item.avatar }} />
       <Name>{item.name}</Name>
       <Bio>{item.bio}</Bio>
 
-      <ProfileButton onPress={() => handleOnPressShowProfile(item.id)}>
+      <ProfileButton onPress={() => handleOnPressShowProfile(item)}>
         <ProfileButtonText>Ver perfil</ProfileButtonText>
       </ProfileButton>
       <RemoveButton onPress={() => handleOnPressRemove(item.id)}>
